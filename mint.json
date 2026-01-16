@@ -1,0 +1,9 @@
+{
+  "name": "totp",
+  "test-directories": [
+    "tests"
+  ],
+  "source-directories": [
+    "source"
+  ]
+}
