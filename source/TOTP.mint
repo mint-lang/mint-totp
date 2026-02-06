@@ -21,46 +21,27 @@ module TOTP {
   }
 
   /*
-  Generates an HMAC-SHA signature using SubtleCrypto.
+  Generates an HMAC-SHA signature using the crypto library.
 
   Returns Promise with Result containing the HMAC signature bytes or error.
-
-  TODO: Create a crypto package using SubtleCrypto and move this there.
   */
   fun hmacSha (
     algorithm : TOTP.Algorithm,
     key : Array(Number),
     message : Array(Number)
   ) : Promise(Result(TOTP.Error, Array(Number))) {
-    let name =
+    let cryptoAlgorithm =
       case algorithm {
-        TOTP.Algorithm.SHA256 => "SHA-256"
-        TOTP.Algorithm.SHA512 => "SHA-512"
-        TOTP.Algorithm.SHA1 => "SHA-1"
+        TOTP.Algorithm.SHA256 => Crypto.HashAlgorithm.SHA256
+        TOTP.Algorithm.SHA512 => Crypto.HashAlgorithm.SHA512
+        TOTP.Algorithm.SHA1 => Crypto.HashAlgorithm.SHA1
       }
 
-    `
-    (async () => {
-      try {
-        const key =
-          await crypto.subtle.importKey(
-            'raw', new Uint8Array(#{key}),
-            { name: 'HMAC', hash: #{name} },
-            false, ['sign']
-          );
-
-        const signature =
-          await crypto.subtle.sign('HMAC', key, new Uint8Array(#{message}));
-
-        const signatureArray =
-          Array.from(new Uint8Array(signature));
-
-        return #{Result.Ok(`signatureArray`)};
-      } catch (error) {
-        return #{Result.Err(TOTP.Error.CryptoError(`error.message`))};
-      }
-    })()
-    `
+    case await Crypto.Hash.hmac(message, key, cryptoAlgorithm) {
+      Ok(hmacResult) => Result.Ok(hmacResult.digest)
+      Err(cryptoError) =>
+        Result.Err(TOTP.Error.CryptoError("HMAC operation failed"))
+    }
   }
 
   /*
